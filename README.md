@@ -11,7 +11,34 @@ ssh foo.exe.xyz   # lands in zsh + tmux 'main'
 
 ## With Tailscale
 
-Pass a tagged, reusable, pre-approved auth key via `--env TS_AUTHKEY`:
+### One-time tailnet setup
+
+In your [tailnet policy](https://login.tailscale.com/admin/acls), add:
+
+```jsonc
+{
+  "tagOwners": { "tag:exe": ["autogroup:admin"] },
+  "acls": [
+    {"action": "accept", "src": ["autogroup:member"], "dst": ["tag:exe:*"]}
+  ],
+  "ssh": [
+    {
+      "action": "accept",
+      "src":    ["autogroup:member"],
+      "dst":    ["tag:exe"],
+      "users":  ["root", "autogroup:nonroot"]
+    }
+  ]
+}
+```
+
+Then enable Serve once at https://login.tailscale.com/f/serve.
+
+After that, every VM is zero-config.
+
+### Per VM
+
+Pass a reusable, pre-approved auth key tagged `tag:exe` via `--env TS_AUTHKEY`:
 
 ```bash
 ssh exe.dev new --image ghcr.io/kruxlab/anvil:latest \

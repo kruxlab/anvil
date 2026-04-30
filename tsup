@@ -18,5 +18,6 @@ SUDO=""
 $SUDO tailscale up \
   --authkey="$TS_AUTHKEY" \
   --hostname="$(hostname -s)" \
+  --operator=exedev \
   --ssh \
   --accept-routes
