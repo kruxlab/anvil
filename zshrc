@@ -40,5 +40,5 @@ serve-me() {
     echo "usage: serve-me <port>" >&2
     return 1
   fi
-  tailscale serve --bg https / "http://localhost:$1"
+  tailscale serve --bg "http://localhost:$1"
 }
