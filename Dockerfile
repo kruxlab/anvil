@@ -13,10 +13,14 @@ RUN apt-get update && \
 USER exedev
 WORKDIR /home/exedev
 
+# Put mise on PATH for all subsequent build steps. mise's npm shim auto-reshims
+# after `npm install -g`, which shells out to `mise` — needs to be findable.
+ENV PATH="/home/exedev/.local/bin:${PATH}"
+
 # mise — runtime/tool manager. Tools install per-VM as needed; we only
 # bake in the shell-experience CLIs (plus node@lts for opencode + npx-based MCPs).
 RUN curl -fsSL https://mise.run | sh && \
-    ~/.local/bin/mise use -g \
+    mise use -g \
       node@lts \
       starship@latest \
       zoxide@latest \
@@ -29,8 +33,7 @@ RUN curl -fsSL https://mise.run | sh && \
 
 # opencode — AI coding agent. Config baked in below; opencode-zen auth
 # flows in via OPENCODE_API_KEY env (passthrough'd by anvil-env.sh).
-RUN ~/.local/bin/mise exec -- npm install -g opencode-ai && \
-    ~/.local/bin/mise reshim
+RUN mise exec -- npm install -g opencode-ai
 
 # zsh-vi-mode plugin (no apt package)
 RUN git clone --depth 1 https://github.com/jeffreytse/zsh-vi-mode.git \
