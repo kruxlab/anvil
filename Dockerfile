@@ -43,8 +43,9 @@ COPY --chown=exedev:exedev starship.toml /home/exedev/.config/starship/starship.
 USER root
 RUN chsh -s /usr/bin/zsh exedev
 COPY tsup /usr/local/bin/tsup
+COPY anvil-boot /usr/local/bin/anvil-boot
 COPY anvil-tailscale.service /etc/systemd/system/anvil-tailscale.service
-RUN chmod +x /usr/local/bin/tsup && \
+RUN chmod +x /usr/local/bin/tsup /usr/local/bin/anvil-boot && \
     systemctl enable anvil-tailscale.service
 USER exedev
 

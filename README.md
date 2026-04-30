@@ -38,7 +38,9 @@ After that, every VM is zero-config.
 
 ### Per VM
 
-Pass a reusable, pre-approved auth key tagged `tag:exe` via `--env TS_AUTHKEY`:
+Pass an **ephemeral**, reusable, pre-approved auth key tagged `tag:exe` via `--env TS_AUTHKEY`:
+
+> **Why ephemeral:** when you delete a VM, the tailnet node auto-deregisters. Otherwise stale nodes pile up and new VMs with the same name get renamed `foo-1`, `foo-2`, etc.
 
 ```bash
 ssh exe.dev new --image ghcr.io/kruxlab/anvil:latest \

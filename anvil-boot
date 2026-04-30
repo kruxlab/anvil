@@ -1,0 +1,14 @@
+#!/bin/bash
+# Boot-time wrapper. Fetches the latest tsup from GitHub master so
+# script fixes propagate without rebuilding/repulling the image.
+# Falls back to the baked-in tsup if offline or fetch fails.
+set -e
+
+REPO_URL="${ANVIL_REPO:-https://raw.githubusercontent.com/kruxlab/anvil/master}"
+TMP=$(mktemp)
+if curl -fsSL --max-time 15 "$REPO_URL/tsup" -o "$TMP" && [ -s "$TMP" ]; then
+  install -m 755 "$TMP" /usr/local/bin/tsup
+fi
+rm -f "$TMP"
+
+exec /usr/local/bin/tsup
