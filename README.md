@@ -42,6 +42,10 @@ Pass an **ephemeral**, reusable, pre-approved auth key tagged `tag:exe` via `--e
 
 > **Why ephemeral:** when you delete a VM, the tailnet node auto-deregisters. Otherwise stale nodes pile up and new VMs with the same name get renamed `foo-1`, `foo-2`, etc.
 
+### Image caching
+
+exe.dev caches `:latest` aggressively per-org. After publishing a new image, you may need to use a SHA tag once (`ghcr.io/kruxlab/anvil:sha-XXXXXXX`) to force a pull. Once cached, that image's `anvil-boot` fetches the latest `tsup` from GitHub master at every reboot, so subsequent `tsup` fixes don't require a re-pull.
+
 ```bash
 ssh exe.dev new --image ghcr.io/kruxlab/anvil:latest \
   --env TS_AUTHKEY=tskey-... \
