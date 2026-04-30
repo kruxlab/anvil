@@ -1,0 +1,22 @@
+[user]
+	name = Thomas Juranek
+	email = dev@thomasjuranek.com
+
+[github]
+	user = tjuranek
+
+[core]
+	autocrlf = input
+
+[init]
+	defaultBranch = master
+
+[pull]
+	rebase = false
+
+[push]
+	default = simple
+	autoSetupRemote = true
+
+[color]
+	ui = auto
