@@ -18,6 +18,9 @@ SUDO=""
 $SUDO tailscale up \
   --authkey="$TS_AUTHKEY" \
   --hostname="$(hostname -s)" \
-  --operator=exedev \
   --ssh \
   --accept-routes
+
+# Allow exedev to run tailscale commands (serve, status, etc.) without sudo.
+# Must be set after `up`; --operator on `up` doesn't reliably persist.
+$SUDO tailscale set --operator=exedev
