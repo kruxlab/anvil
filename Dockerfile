@@ -39,9 +39,13 @@ COPY --chown=exedev:exedev tmux.conf     /home/exedev/.config/tmux/tmux.conf
 COPY --chown=exedev:exedev gitconfig     /home/exedev/.config/git/config
 COPY --chown=exedev:exedev starship.toml /home/exedev/.config/starship/starship.toml
 
-# Default shell to zsh
+# Default shell to zsh + Tailscale auto-up service
 USER root
 RUN chsh -s /usr/bin/zsh exedev
+COPY tsup /usr/local/bin/tsup
+COPY anvil-tailscale.service /etc/systemd/system/anvil-tailscale.service
+RUN chmod +x /usr/local/bin/tsup && \
+    systemctl enable anvil-tailscale.service
 USER exedev
 
 # Inherit exeuntu's CMD/init — don't override.

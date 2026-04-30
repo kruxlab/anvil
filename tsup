@@ -1,0 +1,22 @@
+#!/bin/bash
+# Bring up Tailscale on this VM.
+# Reads TS_AUTHKEY from the environment or from PID 1 (container env).
+set -euo pipefail
+
+if [ -z "${TS_AUTHKEY:-}" ]; then
+  TS_AUTHKEY=$(tr '\0' '\n' </proc/1/environ 2>/dev/null | sed -n 's/^TS_AUTHKEY=//p' || true)
+fi
+
+if [ -z "${TS_AUTHKEY:-}" ]; then
+  echo "tsup: TS_AUTHKEY not set; pass via 'ssh exe.dev new --env TS_AUTHKEY=...'" >&2
+  exit 1
+fi
+
+SUDO=""
+[ "$(id -u)" -ne 0 ] && SUDO=sudo
+
+$SUDO tailscale up \
+  --authkey="$TS_AUTHKEY" \
+  --hostname="$(hostname -s)" \
+  --ssh \
+  --accept-routes

@@ -32,3 +32,13 @@ zd() {
     z "$@" && printf "\U000F17A9 " && pwd || echo "Error: Directory not found"
   fi
 }
+
+# Expose a local port over Tailscale at https://<vm>.<ts-net>.ts.net/
+# Usage: serve-me 3000
+serve-me() {
+  if [ -z "${1:-}" ]; then
+    echo "usage: serve-me <port>" >&2
+    return 1
+  fi
+  tailscale serve --bg https / "http://localhost:$1"
+}

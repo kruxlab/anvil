@@ -1,0 +1,14 @@
+[Unit]
+Description=anvil: bring up Tailscale at first boot if TS_AUTHKEY is set
+After=tailscaled.service network-online.target
+Wants=tailscaled.service network-online.target
+ConditionPathExists=!/var/lib/anvil/tailscale-up
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/bash -c '/usr/local/bin/tsup && mkdir -p /var/lib/anvil && touch /var/lib/anvil/tailscale-up'
+SuccessExitStatus=0 1
+
+[Install]
+WantedBy=multi-user.target
