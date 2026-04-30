@@ -1,27 +1,48 @@
 # anvil
 
-kruxlab's exe.dev base image. exeuntu plus zsh + tmux + a minimal CLI toolkit, with optional Tailscale auto-join.
+kruxlab's [exe.dev](https://exe.dev) base image. exeuntu plus zsh + tmux + a minimal CLI toolkit and Tailscale auto-join. Built so that spinning up a VM is one command and SSHing in feels like home.
 
-## Use
+## Quick start
 
 ```bash
-ssh exe.dev new --image ghcr.io/kruxlab/anvil:latest --name foo
-ssh foo.exe.xyz   # lands in zsh + tmux 'main'
+ssh exe.dev new --image ghcr.io/kruxlab/anvil:latest \
+  --env TS_AUTHKEY=tskey-... \
+  --name foo
 ```
 
-## With Tailscale
+Then from any device on your tailnet:
 
-### One-time tailnet setup
+```bash
+ssh exedev@foo                    # Tailscale SSH, no browser tap
+```
 
-In your [tailnet policy](https://login.tailscale.com/admin/acls), add:
+Inside the VM, expose a service to your tailnet over HTTPS:
+
+```bash
+serve-me 3000                     # https://foo.<ts-net>.ts.net/  →  localhost:3000
+```
+
+That's the steady state. The setup below only happens once.
+
+## One-time setup
+
+### Tailnet policy
+
+Open [tailscale admin → Access Controls](https://login.tailscale.com/admin/acls) and merge the following blocks:
 
 ```jsonc
 {
-  "tagOwners": { "tag:exe": ["autogroup:admin"] },
+  "tagOwners": {
+    "tag:exe": ["autogroup:admin"]
+  },
+
   "acls": [
+    // members can reach all ports on tag:exe nodes (HTTP, SSH, etc.)
     {"action": "accept", "src": ["autogroup:member"], "dst": ["tag:exe:*"]}
   ],
+
   "ssh": [
+    // accept = no browser confirmation; check = browser confirmation
     {
       "action": "accept",
       "src":    ["autogroup:member"],
@@ -32,62 +53,48 @@ In your [tailnet policy](https://login.tailscale.com/admin/acls), add:
 }
 ```
 
-Then enable Serve once at https://login.tailscale.com/f/serve.
+### Enable Tailscale Serve
 
-After that, every VM is zero-config.
+Click once: <https://login.tailscale.com/f/serve>. Survives forever, every node can use Serve.
 
-### Per VM
+### Generate an auth key
 
-Pass an **ephemeral**, reusable, pre-approved auth key tagged `tag:exe` via `--env TS_AUTHKEY`:
+[tailscale admin → Keys → Generate auth key](https://login.tailscale.com/admin/settings/keys):
 
-> **Why ephemeral:** when you delete a VM, the tailnet node auto-deregisters. Otherwise stale nodes pile up and new VMs with the same name get renamed `foo-1`, `foo-2`, etc.
+- ✓ **Reusable**
+- ✓ **Ephemeral** *(critical — deleted VMs auto-deregister, no stale node pile-up)*
+- ✓ **Pre-approved**
+- Tag: `tag:exe`
 
-### Image caching
-
-exe.dev caches `:latest` aggressively per-org. After publishing a new image, you may need to use a SHA tag once (`ghcr.io/kruxlab/anvil:sha-XXXXXXX`) to force a pull. Once cached, that image's `anvil-boot` fetches the latest `tsup` from GitHub master at every reboot, so subsequent `tsup` fixes don't require a re-pull.
-
-```bash
-ssh exe.dev new --image ghcr.io/kruxlab/anvil:latest \
-  --env TS_AUTHKEY=tskey-... \
-  --name foo
-```
-
-On first boot, the VM joins your tailnet with:
-- `--ssh` — Tailscale SSH (identity-based, governed by your ACLs)
-- hostname matching the VM name
-
-You can then SSH via Tailscale (`ssh foo` on any tailnet device) instead of the public exe.dev URL.
-
-To re-up manually inside a VM:
-```bash
-TS_AUTHKEY=tskey-... tsup
-```
-
-## Expose a service to your tailnet
-
-Inside the VM, after Tailscale is up:
-
-```bash
-serve-me 3000   # https://foo.tail-XXXX.ts.net/  ->  http://localhost:3000
-```
-
-- Real LE cert, no public exposure.
-- Reachable from any tailnet device (Mac, phone with Tailscale app, etc.).
-- Persists across reboots.
-
-For multi-port or path-based mapping, use `tailscale serve` directly.
+Save it somewhere; pass via `--env TS_AUTHKEY=...` on every `new`.
 
 ## What's in the image
 
 On top of [exeuntu](https://github.com/boldsoftware/exeuntu):
 
-- **Shell:** zsh, zsh-vi-mode, starship prompt, tmux (auto-attaches `main` on SSH)
-- **Tools:** eza, fzf, bat, fd, zoxide, direnv, lazygit (via mise)
-- **Networking:** Tailscale boot-time auto-up (when `TS_AUTHKEY` set), `tsup` and `serve-me` helpers
-- **Configs:** dotfiles baked in at build time — no runtime bootstrap
+- **Shell:** zsh as the default shell, zsh-vi-mode, starship prompt, OSC52 clipboard
+- **tmux:** auto-attaches to a `main` session on every interactive SSH login
+- **Tools (via mise):** eza, fzf, bat, fd, zoxide, direnv, lazygit
+- **Networking:**
+  - `anvil-boot` runs at first boot, fetches latest `tsup` from this repo, executes it
+  - `tsup` joins the tailnet (`--ssh`, `--accept-routes`, operator = exedev)
+  - `serve-me <port>` exposes a local port at `https://<vm>.<ts-net>.ts.net/`
+- **Dotfiles:** baked into the image — `~/.zshrc`, `tmux.conf`, `gitconfig`, `starship.toml`
 
-No language runtimes are pre-installed. Add per-VM with `mise use -g node@lts` etc.
+No language runtimes are pre-installed. Add per-VM as needed: `mise use -g node@lts python@3 …`.
+
+## Image caching note
+
+exe.dev caches the `:latest` tag per-org. After publishing a new image, you may need to use a SHA tag **once** (e.g. `ghcr.io/kruxlab/anvil:sha-XXXXXXX`) to force a pull. From then on, the cached image's `anvil-boot` fetches `tsup` fresh from GitHub master on every reboot, so future `tsup` fixes don't require a re-pull.
+
+Image-baked changes (zshrc, configs, the boot wrapper itself) still need a tag bump. `tsup` changes flow through automatically.
 
 ## Build & release
 
-GitHub Actions builds and pushes to `ghcr.io/kruxlab/anvil:latest` on every push to `master`. After the first build, flip the GHCR package visibility to **public** so exe.dev can pull without auth.
+GitHub Actions builds and pushes to `ghcr.io/kruxlab/anvil:latest` and `:sha-<short>` on every push to `master`. The package is public.
+
+To rebuild manually:
+
+```bash
+gh workflow run build --repo kruxlab/anvil
+```
